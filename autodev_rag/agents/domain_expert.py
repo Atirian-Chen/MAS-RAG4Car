@@ -14,15 +14,40 @@ ENTITY_PATTERN = re.compile(
 
 
 class DomainExpertAgent:
+    MAX_CITATIONS = 3
+    QUERY_TERMS = (
+        "AEB",
+        "LKA",
+        "BMS",
+        "雨天",
+        "低速",
+        "高温",
+        "弯道",
+        "误触发",
+        "风险",
+        "测试",
+        "验证",
+        "需求",
+        "缺陷",
+        "根因",
+        "制动",
+        "车道",
+        "电池",
+        "温度",
+        "扭矩",
+        "信号",
+    )
+
     def answer(
         self,
         query: str,
         planner_output: PlannerOutput,
         retrieved_chunks: list[RetrievedChunk],
     ) -> ExpertOutput:
-        citations = [chunk.citation for chunk in retrieved_chunks]
-        related_entities = self._extract_entities(retrieved_chunks)
-        evidence_lines = self._summarize_evidence(retrieved_chunks)
+        cited_chunks = self._select_evidence(query, planner_output, retrieved_chunks)
+        citations = [chunk.citation for chunk in cited_chunks]
+        related_entities = self._extract_entities(cited_chunks)
+        evidence_lines = self._summarize_evidence(cited_chunks)
         target = planner_output.target_function or "未限定功能"
 
         answer = "\n".join(
@@ -46,6 +71,57 @@ class DomainExpertAgent:
             assumptions=["基于本项目自构造样例文档和检索片段进行推断，默认不包含真实企业数据。"],
             missing_info=self._missing_info(query, retrieved_chunks),
         )
+
+    def _select_evidence(
+        self,
+        query: str,
+        planner_output: PlannerOutput,
+        chunks: list[RetrievedChunk],
+    ) -> list[RetrievedChunk]:
+        if not chunks:
+            return []
+
+        scored_chunks = [
+            (self._evidence_score(query, planner_output, chunk), rank, chunk)
+            for rank, chunk in enumerate(chunks)
+        ]
+        scored_chunks.sort(key=lambda item: (item[0], -item[1]), reverse=True)
+
+        selected: list[RetrievedChunk] = []
+        selected_entity_types: set[str] = set()
+        for score, _, chunk in scored_chunks:
+            if score <= 0 and selected:
+                continue
+            entity_type = str(chunk.metadata.get("entity_type") or "")
+            has_new_entity_type = entity_type and entity_type not in selected_entity_types
+            has_entities = bool(ENTITY_PATTERN.search(chunk.text))
+            if len(selected) < 2 or has_new_entity_type or has_entities:
+                selected.append(chunk)
+                selected_entity_types.add(entity_type)
+            if len(selected) >= self.MAX_CITATIONS:
+                break
+
+        return selected or chunks[:1]
+
+    def _evidence_score(
+        self,
+        query: str,
+        planner_output: PlannerOutput,
+        chunk: RetrievedChunk,
+    ) -> float:
+        score = float(chunk.score)
+        entity_type = chunk.metadata.get("entity_type")
+        function = chunk.metadata.get("function")
+        if entity_type in planner_output.needed_entities:
+            score += 3.0
+        if planner_output.target_function and function == planner_output.target_function:
+            score += 2.0
+        score += min(len(ENTITY_PATTERN.findall(chunk.text)), 3) * 0.6
+        score += sum(0.4 for term in self.QUERY_TERMS if term in query and term in chunk.text)
+        for entity in ENTITY_PATTERN.findall(query):
+            if entity in chunk.text:
+                score += 2.0
+        return score
 
     def _extract_entities(self, chunks: list[RetrievedChunk]) -> list[str]:
         ordered: OrderedDict[str, None] = OrderedDict()

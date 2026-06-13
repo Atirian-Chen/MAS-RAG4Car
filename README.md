@@ -45,8 +45,8 @@ Signal -->|used_by| Function
 - Ontology Schema：用 Pydantic + YAML 表达轻量汽车软件工程 schema。
 - Local Vector Retriever：基于 scikit-learn TF-IDF 的离线检索器，支持 `function` 和 `entity_type` metadata filter。
 - Planner Agent：规则化识别需求分析、测试生成、风险分析、缺陷诊断和通用问答意图。
-- Domain Expert Agent：从检索片段提取工程实体 ID，生成结构化回答与 `doc_id#chunk_id` citation。
-- Verification Agent：计算 citation coverage、groundedness score，并标记强断言和无依据回答风险。
+- Domain Expert Agent：从检索片段中选择实际使用的 evidence，提取工程实体 ID，并生成结构化回答与 `doc_id#chunk_id` citation。
+- Verification Agent：校验 citation validity、被引用证据中的实体支撑、查询焦点覆盖和过度引用风险，输出 groundedness score。
 - Report Generator：生成可读 Markdown 分析报告。
 - Evaluator：基于 20 条 eval case 统计 intent accuracy、entity recall、citation hit rate、groundedness score 和 invalid answer rate。
 
@@ -81,7 +81,7 @@ python -m autodev_rag.cli ask "BUG-AEB-001 应该如何定位？" --index output
 AutoDev RAG Result
 intent           risk_analysis
 target_function  AEB
-top_citations    06_risk_analysis_examples#chunk_001, 05_test_case_examples#chunk_001, 01_aeb_requirement#chunk_002
+top_citations    06_risk_analysis_examples#chunk_000, 05_test_case_examples#chunk_000, 01_aeb_requirement#chunk_001
 final_verdict    pass
 report_path      outputs/report_<hash>.md
 ```
@@ -105,6 +105,19 @@ report_path      outputs/report_<hash>.md
 python -m autodev_rag.cli eval --cases data/eval/eval_cases.jsonl --index outputs/index.pkl
 ```
 
+## Eval Result
+
+本地运行 `python -m autodev_rag.cli eval` 的结果：
+
+| Metric | Value |
+| --- | ---: |
+| total | 20 |
+| intent_accuracy | 1.000 |
+| avg_entity_recall | 0.854 |
+| citation_hit_rate | 1.000 |
+| avg_groundedness_score | 0.992 |
+| invalid_answer_rate | 0.000 |
+
 ## 项目边界
 
 - 样例文档全部为自构造数据，不包含真实企业内部资料。
@@ -125,4 +138,3 @@ python -m autodev_rag.cli eval --cases data/eval/eval_cases.jsonl --index output
 
 - 构建面向汽车软件开发文档的 AutoDev Multi-Agent RAG 原型，设计需求、功能、信号、测试、风险、缺陷等领域 schema，并结合向量检索与 metadata filter 生成结构化工程分析报告。
 - 设计 Planner / Domain Expert / Verifier 多 Agent 链路，基于 20 条评测 case 统计 intent accuracy、entity recall、citation coverage 与 invalid answer rate，验证回答依据性与无依据回答控制效果。
-

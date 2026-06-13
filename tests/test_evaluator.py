@@ -34,4 +34,6 @@ def test_evaluate_all_returns_metrics(tmp_path: Path) -> None:
         assert metric in summary
         assert 0 <= summary[metric] <= 1
     assert summary["total"] == 20
-
+    assert summary["intent_accuracy"] >= 0.8
+    assert summary["avg_entity_recall"] >= 0.6
+    assert summary["citation_hit_rate"] >= 0.6
