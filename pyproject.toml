@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autodev-multi-agent-rag"
+version = "0.1.0"
+description = "Offline-first multi-agent RAG prototype for automotive software development documents."
+requires-python = ">=3.11"
+readme = "README.md"
+dependencies = [
+  "pydantic>=2.6,<3.0",
+  "PyYAML>=6.0,<7.0",
+  "scikit-learn>=1.3,<2.0",
+  "typer>=0.12,<1.0",
+  "rich>=13.0,<14.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0,<9.0"]
+
+[project.scripts]
+autodev-rag = "autodev_rag.cli:app"
+
+[tool.setuptools.packages.find]
+include = ["autodev_rag*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+

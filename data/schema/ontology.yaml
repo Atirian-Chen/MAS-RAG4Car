@@ -1,0 +1,73 @@
+entities:
+  Requirement:
+    description: Automotive software requirement with traceable function and safety metadata.
+    fields:
+      - id
+      - title
+      - function
+      - description
+      - safety_relevance
+      - priority
+  Function:
+    description: Vehicle software function or subsystem behavior.
+    fields:
+      - id
+      - name
+      - subsystem
+      - description
+  Signal:
+    description: Vehicle signal used by functions and diagnostics.
+    fields:
+      - id
+      - name
+      - source
+      - target
+      - unit
+      - sample_rate
+      - description
+  TestCase:
+    description: Test case that verifies a requirement under an engineering scenario.
+    fields:
+      - id
+      - scenario
+      - precondition
+      - steps
+      - expected_result
+      - verified_requirement
+  Risk:
+    description: Risk item that affects a vehicle function and is mitigated by validation.
+    fields:
+      - id
+      - related_function
+      - severity
+      - cause
+      - impact
+      - mitigation
+  Defect:
+    description: Defect report linked to requirement and validation evidence.
+    fields:
+      - id
+      - symptom
+      - related_requirement
+      - suspected_root_cause
+      - suggested_validation
+relations:
+  - name: implements
+    source: Requirement
+    target: Function
+  - name: verifies
+    source: TestCase
+    target: Requirement
+  - name: affects
+    source: Risk
+    target: Function
+  - name: mitigated_by
+    source: Risk
+    target: TestCase
+  - name: violates
+    source: Defect
+    target: Requirement
+  - name: used_by
+    source: Signal
+    target: Function
+
